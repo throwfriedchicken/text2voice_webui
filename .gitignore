@@ -1,0 +1,18 @@
+# --- build.bat 產生的東西 ---
+/qwentts.cpp/
+/bin/
+/models/
+/config.bat
+*.part
+
+# --- 執行時資料（使用者自己的聲音與音檔）---
+/outputs/
+/voices/
+
+# --- 編輯器 / 系統 ---
+.vscode/
+.idea/
+*.swp
+Thumbs.db
+Desktop.ini
+.DS_Store

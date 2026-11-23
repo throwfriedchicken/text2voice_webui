@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Qwen3-TTS 本機語音</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+  <h1>Qwen3-TTS <span class="sub">本機語音合成</span></h1>
+  <div id="status" class="pill">連線中…</div>
+</header>
+
+<nav class="tabs">
+  <button class="tab active" data-tab="design">1. 設計聲音</button>
+  <button class="tab" data-tab="clone">2. 固定聲音 / 複製聲音</button>
+</nav>
+
+<main>
+  <!-- ============================== VoiceDesign -->
+  <section id="tab-design" class="panel active">
+    <div class="grid">
+      <div class="card">
+        <label>要念的文字
+          <textarea id="d-text" rows="6" data-persist placeholder="想拿來當固定聲音的參考音時，建議 5–15 秒、語氣自然的一段話。"></textarea>
+        </label>
+        <div class="row">
+          <label>語言 <select id="d-lang" class="lang"></select></label>
+          <label>聲音範本 <select id="d-preset"><option value="">（選一個填入描述）</option></select></label>
+        </div>
+        <label>聲音描述（中英文皆可）
+          <textarea id="d-inst" rows="3" data-persist></textarea>
+        </label>
+        <div class="params" id="d-params"></div>
+        <div class="row actions">
+          <label class="check"><input type="checkbox" id="d-stream" checked data-persist> 邊生成邊播放</label>
+          <button id="d-stop" class="ghost" disabled>停止</button>
+          <button id="d-go" class="primary">生成語音</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>結果</h2>
+        <div class="result" id="d-result">
+          <audio controls></audio>
+          <div class="info muted">尚未生成</div>
+          <div class="row btns">
+            <a class="btn ghost dl" download hidden>下載 WAV</a>
+            <button class="ghost keep-seed" hidden>固定這個 seed</button>
+            <button class="ghost to-ref" hidden>➜ 設為固定聲音的參考音</button>
+          </div>
+        </div>
+        <h3>這次開啟的紀錄</h3>
+        <ul class="history" id="d-history"></ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================== Clone -->
+  <section id="tab-clone" class="panel">
+    <div class="grid">
+      <div class="card">
+        <h2>A. 建立聲音</h2>
+        <p class="muted">參考音可從「設計聲音」帶過來、上傳音檔或直接錄音。3–15 秒、乾淨無背景音最好。</p>
+        <div class="row">
+          <label class="btn ghost file">上傳音檔<input type="file" id="c-file" accept="audio/*" hidden></label>
+          <button id="c-rec" class="ghost">● 錄音</button>
+          <span id="c-ref-info" class="muted"></span>
+        </div>
+        <audio id="c-ref" controls hidden></audio>
+        <label>參考音的逐字稿（要和音檔內容一字不差）
+          <textarea id="c-ref-text" rows="2"></textarea>
+        </label>
+        <label class="check"><input type="checkbox" id="c-xvec"> 只用聲紋（沒有逐字稿時勾選，相似度較低）</label>
+        <label>聲音名稱 <input id="c-name" placeholder="例如：旁白男聲"></label>
+        <div class="row actions">
+          <span id="c-msg" class="muted"></span>
+          <button id="c-create" class="primary">建立並儲存聲音</button>
+        </div>
+
+        <h2>已存的聲音</h2>
+        <ul class="voices" id="c-voices"><li class="muted">（還沒有）</li></ul>
+      </div>
+
+      <div class="card">
+        <h2>B. 用選定的聲音念新內容</h2>
+        <div class="muted" id="c-selected">尚未選擇聲音</div>
+        <label>要念的文字
+          <textarea id="c-text" rows="6" data-persist></textarea>
+        </label>
+        <label>語言 <select id="c-lang" class="lang"></select></label>
+        <div class="params" id="c-params"></div>
+        <div class="row actions">
+          <label class="check"><input type="checkbox" id="c-stream" checked data-persist> 邊生成邊播放</label>
+          <button id="c-stop" class="ghost" disabled>停止</button>
+          <button id="c-go" class="primary">生成語音</button>
+        </div>
+        <div class="result" id="c-result">
+          <audio controls></audio>
+          <div class="info muted">尚未生成</div>
+          <div class="row btns">
+            <a class="btn ghost dl" download hidden>下載 WAV</a>
+            <button class="ghost keep-seed" hidden>固定這個 seed</button>
+          </div>
+        </div>
+        <h3>這次開啟的紀錄</h3>
+        <ul class="history" id="c-history"></ul>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="muted">音檔另存於 <code>outputs\</code>，聲音存於 <code>voices\</code>。引擎：qwentts.cpp（C++ / GGML）。</footer>
+
+<template id="params-tpl">
+  <details>
+    <summary>進階參數</summary>
+    <div class="pgrid">
+      <label>temperature <span class="v"></span><input type="range" name="temperature" min="0.1" max="1.5" step="0.05" value="0.9"></label>
+      <label>top_p <span class="v"></span><input type="range" name="top_p" min="0.1" max="1" step="0.05" value="1"></label>
+      <label>top_k <span class="v"></span><input type="range" name="top_k" min="1" max="200" step="1" value="50"></label>
+      <label>repetition_penalty <span class="v"></span><input type="range" name="repetition_penalty" min="1" max="2" step="0.01" value="1.05"></label>
+      <label>最長秒數 <span class="v"></span><input type="range" name="max_sec" min="5" max="180" step="5" value="60"></label>
+      <label>seed（-1 = 隨機）<input type="number" name="seed" value="-1" step="1"></label>
+    </div>
+    <button type="button" class="ghost small reset">還原預設</button>
+  </details>
+</template>
+
+<script src="app.js"></script>
+</body>
+</html>
